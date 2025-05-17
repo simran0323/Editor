@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coding Editor</title>
+    <title>VS Code-like Coding Editor</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/editor/editor.main.min.css">
     <style>
         body {
@@ -26,6 +26,7 @@
             --terminal-text: #000000;
             --menu-bg: #f0f0f0;
             --menu-hover: #e0e0e0;
+            --terminal-prompt: #007acc;
         }
 
         [data-theme="dark"] {
@@ -36,6 +37,7 @@
             --terminal-text: #ffffff;
             --menu-bg: #252526;
             --menu-hover: #353535;
+            --terminal-prompt: #569cd6;
         }
 
         /* Menu Bar */
@@ -95,9 +97,36 @@
             color: var(--terminal-text);
             padding: 10px;
             font-family: 'Courier New', monospace;
+            font-size: 14px;
             overflow-y: auto;
             border-top: 1px solid #ccc;
             white-space: pre-wrap;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-line {
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-prompt {
+            color: var(--terminal-prompt);
+            margin-right: 5px;
+        }
+
+        #terminal-input {
+            background: none;
+            border: none;
+            color: var(--terminal-text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            flex: 1;
+            outline: none;
+        }
+
+        #terminal-input:focus {
+            outline: none;
         }
 
         /* Controls */
@@ -151,9 +180,13 @@
                 <div class="dropdown-item" onclick="newFile()">New</div>
                 <div class="dropdown-item" onclick="openFile()">Open</div>
                 <div class="dropdown-item" onclick="saveFile()">Save</div>
-            </divDemocracyOS provides a menu-driven interface for editing configuration files.
-            <div class="dropdown-item" onclick="copyText()">Copy</div>
-            <div class="dropdown-item" onclick="pasteText()">Paste</div>
+            </div>
+        </div>
+        <div class="menu-item">Edit
+            <div class="dropdown">
+                <div class="dropdown-item" onclick="copyText()">Copy</div>
+                <div class="dropdown-item" onclick="pasteText()">Paste</div>
+            </div>
         </div>
     </div>
 
@@ -173,13 +206,21 @@
     <div id="editor-container"></div>
 
     <!-- Terminal -->
-    <div id="terminal">Terminal output will appear here...</div>
+    <div id="terminal">
+        <div id="terminal-output"></div>
+        <div class="terminal-line">
+            <span class="terminal-prompt">></span>
+            <input id="terminal-input" type="text" autocomplete="off">
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.min.js"></script>
     <script>
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs' }});
         let editor;
+        let commandHistory = [];
+        let historyIndex = -1;
 
         require(['vs/editor/editor.main'], function () {
             editor = monaco.editor.create(document.getElementById('editor-container'), {
@@ -189,6 +230,51 @@
                 automaticLayout: true
             });
         });
+
+        // Terminal Setup
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalInput = document.getElementById('terminal-input');
+        const terminal = document.getElementById('terminal');
+
+        function appendTerminalOutput(text) {
+            const line = document.createElement('div');
+            line.textContent = text;
+            terminalOutput.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = terminalInput.value.trim();
+                if (command) {
+                    appendTerminalOutput(`> ${command}`);
+                    commandHistory.unshift(command);
+                    historyIndex = -1;
+                    processTerminalCommand(command);
+                    terminalInput.value = '';
+                }
+            } else if (e.key === 'ArrowUp') {
+                if (historyIndex + 1 < commandHistory.length) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                if (historyIndex > -1) {
+                    historyIndex--;
+                    terminalInput.value = historyIndex === -1 ? '' : commandHistory[historyIndex];
+                }
+            }
+        });
+
+        function processTerminalCommand(command) {
+            if (command === 'clear') {
+                terminalOutput.innerHTML = '';
+            } else if (command === 'run') {
+                runCode();
+            } else {
+                appendTerminalOutput(`Command not recognized: ${command}`);
+            }
+        }
 
         // Theme Toggle
         function toggleTheme() {
@@ -203,7 +289,7 @@
         // Clear Editor and Terminal
         function clearEditor() {
             editor.setValue('');
-            document.getElementById('terminal').textContent = 'Terminal output will appear here...';
+            terminalOutput.innerHTML = '';
         }
 
         // Language Change
@@ -221,12 +307,11 @@
             editor.setValue(defaultCode);
         }
 
-        // Run Code (Mock Execution)
+        // Run Code
         function runCode() {
             const code = editor.getValue();
             const lang = document.getElementById('language').value;
-            const terminal = document.getElementById('terminal');
-            terminal.textContent = 'Running...\n';
+            appendTerminalOutput('Running...');
 
             setTimeout(() => {
                 let output = '';
@@ -246,7 +331,7 @@
                 } catch (error) {
                     output = 'Error: ' + error.message;
                 }
-                terminal.textContent = output;
+                appendTerminalOutput(output);
             }, 500);
         }
 
