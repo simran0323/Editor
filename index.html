@@ -193,7 +193,10 @@
     <!-- Controls -->
     <div class="controls">
         <select id="language" onchange="changeLanguage()">
+            <option value="html">HTML</option>
+            <option value="java">Java</option>
             <option value="javascript">JavaScript</option>
+            <option value="css">CSS</option>
             <option value="python">Python</option>
             <option value="cpp">C++</option>
         </select>
@@ -224,8 +227,8 @@
 
         require(['vs/editor/editor.main'], function () {
             editor = monaco.editor.create(document.getElementById('editor-container'), {
-                value: '// Write your code here\n',
-                language: 'javascript',
+                value: '<!DOCTYPE html>\n<html>\n<body>\n    <h1>Hello, World!</h1>\n</body>\n</html>',
+                language: 'html',
                 theme: 'vs-light',
                 automaticLayout: true
             });
@@ -297,8 +300,14 @@
             const lang = document.getElementById('language').value;
             monaco.editor.setModelLanguage(editor.getModel(), lang);
             let defaultCode = '';
-            if (lang === 'javascript') {
+            if (lang === 'html') {
+                defaultCode = '<!DOCTYPE html>\n<html>\n<body>\n    <h1>Hello, World!</h1>\n</body>\n</html>';
+            } else if (lang === 'java') {
+                defaultCode = 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}';
+            } else if (lang === 'javascript') {
                 defaultCode = '// JavaScript code\nconsole.log("Hello, World!");';
+            } else if (lang === 'css') {
+                defaultCode = '/* CSS code */\nbody {\n    background-color: #f0f0f0;\n    color: #333;\n}';
             } else if (lang === 'python') {
                 defaultCode = '# Python code\nprint("Hello, World!")';
             } else if (lang === 'cpp') {
@@ -327,6 +336,16 @@
                         output = 'Python execution simulation:\n' + code.split('\n').filter(line => line.includes('print')).map(line => line.replace(/print\((.*)\)/, '$1')).join('\n') || 'No print statements';
                     } else if (lang === 'cpp') {
                         output = 'C++ execution simulation:\n' + code.split('\n').filter(line => line.includes('cout')).map(line => line.replace(/.*cout\s*<<\s*(.*?)\s*<<.*;/, '$1')).join('\n') || 'No cout statements';
+                    } else if (lang === 'java') {
+                        output = 'Java execution simulation:\n' + code.split('\n').filter(line => line.includes('System.out')).map(line => line.replace(/.*System\.out\.print(ln)?\((.*?)\).*/, '$2')).join('\n') || 'No System.out statements';
+                    } else if (lang === 'html') {
+                        const newWindow = window.open('');
+                        newWindow.document.write(code);
+                        newWindow.document.close();
+                        output = 'HTML rendered in new window';
+                    } else if (lang === 'css') {
+                        const sampleHtml = `<div style="${code}">Sample CSS Preview</div>`;
+                        output = 'CSS applied to sample element:\n' + sampleHtml;
                     }
                 } catch (error) {
                     output = 'Error: ' + error.message;
@@ -342,11 +361,13 @@
 
         function saveFile() {
             const code = editor.getValue();
+            const lang = document.getElementById('language').value;
+            const extension = lang === 'javascript' ? 'js' : lang === 'python' ? 'py' : lang === 'cpp' ? 'cpp' : lang === 'java' ? 'java' : lang;
             const blob = new Blob([code], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `code.${document.getElementById('language').value}`;
+            a.download = `code.${extension}`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -354,7 +375,7 @@
         function openFile() {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.js,.py,.cpp,.txt';
+            input.accept = '.html,.java,.js,.css,.py,.cpp,.txt';
             input.onchange = (event) => {
                 const file = event.target.files[0];
                 if (file) {
@@ -362,8 +383,8 @@
                     reader.onload = (e) => {
                         editor.setValue(e.target.result);
                         const ext = file.name.split('.').pop();
-                        const langMap = { js: 'javascript', py: 'python', cpp: 'cpp' };
-                        const lang = langMap[ext] || 'javascript';
+                        const langMap = { html: 'html', java: 'java', js: 'javascript', css: 'css', py: 'python', cpp: 'cpp' };
+                        const lang = langMap[ext] || 'html';
                         document.getElementById('language').value = lang;
                         changeLanguage();
                     };
