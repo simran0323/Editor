@@ -125,6 +125,22 @@
         button:hover {
             background-color: #005f99;
         }
+
+        #theme-toggle {
+            background-color: #28a745;
+        }
+
+        #theme-toggle:hover {
+            background-color: #218838;
+        }
+
+        #clear-button {
+            background-color: #dc3545;
+        }
+
+        #clear-button:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -135,18 +151,9 @@
                 <div class="dropdown-item" onclick="newFile()">New</div>
                 <div class="dropdown-item" onclick="openFile()">Open</div>
                 <div class="dropdown-item" onclick="saveFile()">Save</div>
-            </div>
-        </div>
-        <div class="menu-item">Edit
-            <div class="dropdown">
-                <div class="dropdown-item" onclick="copyText()">Copy</div>
-                <div class="dropdown-item" onclick="pasteText()">Paste</div>
-            </div>
-        </div>
-        <div class="menu-item">View
-            <div class="dropdown">
-                <div class="dropdown-item" onclick="toggleTheme()">Toggle Theme</div>
-            </div>
+            </divDemocracyOS provides a menu-driven interface for editing configuration files.
+            <div class="dropdown-item" onclick="copyText()">Copy</div>
+            <div class="dropdown-item" onclick="pasteText()">Paste</div>
         </div>
     </div>
 
@@ -158,6 +165,8 @@
             <option value="cpp">C++</option>
         </select>
         <button onclick="runCode()">Run</button>
+        <button id="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+        <button id="clear-button" onclick="clearEditor()">Clear</button>
     </div>
 
     <!-- Editor -->
@@ -188,13 +197,19 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             body.setAttribute('data-theme', newTheme);
             monaco.editor.setTheme(newTheme === 'dark' ? 'vs-dark' : 'vs-light');
+            document.getElementById('theme-toggle').textContent = `Switch to ${newTheme === 'dark' ? 'Light' : 'Dark'} Theme`;
+        }
+
+        // Clear Editor and Terminal
+        function clearEditor() {
+            editor.setValue('');
+            document.getElementById('terminal').textContent = 'Terminal output will appear here...';
         }
 
         // Language Change
         function changeLanguage() {
             const lang = document.getElementById('language').value;
             monaco.editor.setModelLanguage(editor.getModel(), lang);
-            // Set default code for new language
             let defaultCode = '';
             if (lang === 'javascript') {
                 defaultCode = '// JavaScript code\nconsole.log("Hello, World!");';
@@ -213,7 +228,6 @@
             const terminal = document.getElementById('terminal');
             terminal.textContent = 'Running...\n';
 
-            // Simulate code execution (replace with real backend API call)
             setTimeout(() => {
                 let output = '';
                 try {
@@ -238,8 +252,7 @@
 
         // Menu Bar Functions
         function newFile() {
-            editor.setValue('');
-            document.getElementById('terminal').textContent = 'Terminal output will appear here...';
+            clearEditor();
         }
 
         function saveFile() {
@@ -263,7 +276,6 @@
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         editor.setValue(e.target.result);
-                        // Update language based on file extension
                         const ext = file.name.split('.').pop();
                         const langMap = { js: 'javascript', py: 'python', cpp: 'cpp' };
                         const lang = langMap[ext] || 'javascript';
