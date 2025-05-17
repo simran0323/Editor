@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/editor/editor.main.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Light and Dark Themes */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --editor-bg: #ffffff;
+            --terminal-bg: #f4f4f4;
+            --terminal-text: #000000;
+            --menu-bg: #f0f0f0;
+            --menu-hover: #e0e0e0;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1e1e1e;
+            --text-color: #ffffff;
+            --editor-bg: #1e1e1e;
+            --terminal-bg: #252526;
+            --terminal-text: #ffffff;
+            --menu-bg: #252526;
+            --menu-hover: #353535;
+        }
+
+        /* Menu Bar */
+        .menu-bar {
+            background-color: var(--menu-bg);
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .menu-item {
+            position: relative;
+            padding: 5px 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .menu-item:hover {
+            background-color: var(--menu-hover);
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--menu-bg);
+            border: 1px solid #ccc;
+            min-width: 120px;
+            z-index: 100;
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--menu-hover);
+        }
+
+        .menu-item:hover .dropdown {
+            display: block;
+        }
+
+        /* Editor and Terminal */
+        #editor-container {
+            flex: 1;
+            min-height: 50%;
+            background-color: var(--editor-bg);
+        }
+
+        #terminal {
+            flex: 0 0 30%;
+            background-color: var(--terminal-bg);
+            color: var(--terminal-text);
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            overflow-y: auto;
+            border-top: 1px solid #ccc;
+            white-space: pre-wrap;
+        }
+
+        /* Controls */
+        .controls {
+            padding: 5px;
+            background-color: var(--menu-bg);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select, button {
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #007acc;
+            color: white;
+            border: none;
+            border-radius: 3px;
+        }
+
+        button:hover {
+            background-color: #005f99;
+        }
+    </style>
+</head>
+<body>
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="menu-item">File
+            <div class="dropdown">
+                <div class="dropdown-item" onclick="newFile()">New</div>
+                <div class="dropdown-item" onclick="openFile()">Open</div>
+                <div class="dropdown-item" onclick="saveFile()">Save</div>
+            </div>
+        </div>
+        <div class="menu-item">Edit
+            <div class="dropdown">
+                <div class="dropdown-item" onclick="copyText()">Copy</div>
+                <div class="dropdown-item" onclick="pasteText()">Paste</div>
+            </div>
+        </div>
+        <div class="menu-item">View
+            <div class="dropdown">
+                <div class="dropdown-item" onclick="toggleTheme()">Toggle Theme</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <select id="language" onchange="changeLanguage()">
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="cpp">C++</option>
+        </select>
+        <button onclick="runCode()">Run</button>
+    </div>
+
+    <!-- Editor -->
+    <div id="editor-container"></div>
+
+    <!-- Terminal -->
+    <div id="terminal">Terminal output will appear here...</div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.min.js"></script>
+    <script>
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs' }});
+        let editor;
+
+        require(['vs/editor/editor.main'], function () {
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: '// Write your code here\n',
+                language: 'javascript',
+                theme: 'vs-light',
+                automaticLayout: true
+            });
+        });
+
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            monaco.editor.setTheme(newTheme === 'dark' ? 'vs-dark' : 'vs-light');
+        }
+
+        // Language Change
+        function changeLanguage() {
+            const lang = document.getElementById('language').value;
+            monaco.editor.setModelLanguage(editor.getModel(), lang);
+            // Set default code for new language
+            let defaultCode = '';
+            if (lang === 'javascript') {
+                defaultCode = '// JavaScript code\nconsole.log("Hello, World!");';
+            } else if (lang === 'python') {
+                defaultCode = '# Python code\nprint("Hello, World!")';
+            } else if (lang === 'cpp') {
+                defaultCode = '#include <iostream>\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}';
+            }
+            editor.setValue(defaultCode);
+        }
+
+        // Run Code (Mock Execution)
+        function runCode() {
+            const code = editor.getValue();
+            const lang = document.getElementById('language').value;
+            const terminal = document.getElementById('terminal');
+            terminal.textContent = 'Running...\n';
+
+            // Simulate code execution (replace with real backend API call)
+            setTimeout(() => {
+                let output = '';
+                try {
+                    if (lang === 'javascript') {
+                        const originalConsoleLog = console.log;
+                        let logs = [];
+                        console.log = (msg) => logs.push(msg);
+                        eval(code);
+                        console.log = originalConsoleLog;
+                        output = logs.join('\n') || 'No output';
+                    } else if (lang === 'python') {
+                        output = 'Python execution simulation:\n' + code.split('\n').filter(line => line.includes('print')).map(line => line.replace(/print\((.*)\)/, '$1')).join('\n') || 'No print statements';
+                    } else if (lang === 'cpp') {
+                        output = 'C++ execution simulation:\n' + code.split('\n').filter(line => line.includes('cout')).map(line => line.replace(/.*cout\s*<<\s*(.*?)\s*<<.*;/, '$1')).join('\n') || 'No cout statements';
+                    }
+                } catch (error) {
+                    output = 'Error: ' + error.message;
+                }
+                terminal.textContent = output;
+            }, 500);
+        }
+
+        // Menu Bar Functions
+        function newFile() {
+            editor.setValue('');
+            document.getElementById('terminal').textContent = 'Terminal output will appear here...';
+        }
+
+        function saveFile() {
+            const code = editor.getValue();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `code.${document.getElementById('language').value}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function openFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.js,.py,.cpp,.txt';
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        editor.setValue(e.target.result);
+                        // Update language based on file extension
+                        const ext = file.name.split('.').pop();
+                        const langMap = { js: 'javascript', py: 'python', cpp: 'cpp' };
+                        const lang = langMap[ext] || 'javascript';
+                        document.getElementById('language').value = lang;
+                        changeLanguage();
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function copyText() {
+            editor.trigger('keyboard', 'editor.action.clipboardCopyAction');
+        }
+
+        function pasteText() {
+            editor.trigger('keyboard', 'editor.action.clipboardPasteAction');
+        }
+    </script>
+</body>
+</html>
